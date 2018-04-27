@@ -12,6 +12,19 @@ class XCanvas{
         this.res = {}
         this.loadingRes()
         this.loading_ok = false
+        this.dom.onclick = this.click_distribute // 注册 onclick 事件
+    }
+    click_distribute(event,xCanvas = window.xCanvas){
+        var x = event.clientX - canvas.getBoundingClientRect().left // 获取点击的坐标点
+        var y = event.clientY - canvas.getBoundingClientRect().top  // 获取点击的坐标点
+        
+        for(var i = 0 ; i < xCanvas.renderList.length ; i++){
+            console.log(xCanvas.renderList[i])
+            if(xCanvas.renderList[i].test_aabb(x,y)){ // 传入 x y 检测一哈
+                xCanvas.renderList[i].click()
+                
+            }
+        }
     }
     x_canvas_init(xCanvas = window.xCanvas){ // 初始化 canvas 画布
         this.dom.height = this.height   // 设置 canvas 高度
@@ -104,8 +117,8 @@ class NewYuanSuBase{
         this.h = h // 高度
         this.T = this.y // 上
         this.L = this.x // 左
-        this.B = this.y + this.w // 下
-        this.R = this.x + this.h // 右
+        this.B = this.y + this.h // 下
+        this.R = this.x + this.w // 右
         this.reg()
     }
     render(){
@@ -122,19 +135,47 @@ class NewYuanSuBase{
             this.del()
         }
     }
-    aabb_update(self){
-        self.T = self.y
-        self.L = self.x
-        self.B = self.y + self.w
-        self.R = self.x + self.h
+    test_aabb(x,y){
+        if((x > this.L && x < this.R) && (y > this.T && y <this.B)){
+            return true
+        }else{
+            return false
+        }
+    }
+    aabb_update(){
+        this.T = this.y
+        this.L = this.x
+        this.B = this.y + this.h
+        this.R = this.x + this.w
     }
     update(){
-
     }
     del(){
         delete this
     }
-    rotation(angle,type="left"){
+    rotation(angle,type="center",xCanvas = window.xCanvas){
+        xCanvas.context.save()
+        var save_x = this.x //
+        var save_y = this.y
+        if(type === 'left'){
+            this.x = 0
+            this.y = 0 
+            xCanvas.context.translate(this.x,this.y);
+        }else{
+            var new_x = this.x + this.w / 2  // 以中点
+            var new_y = this.y + this.h / 2  // 以中点 
+            xCanvas.context.translate(new_x,new_y);
+            this.x -= new_x 
+            this.y -= new_y 
+        }
+        xCanvas.context.rotate(angle*Math.PI/180);
+        this.render() // 渲染一次
+        this.x = save_x
+        this.y = save_y
+        xCanvas.context.restore();
+    }
+    click(){
+        alert('1')
     }
 }
 
@@ -150,29 +191,19 @@ class JuXing extends NewYuanSuBase{ // 注意reg 注册的层级 z_index
         
         // 绘制一个填充矩形  开始的x点 和 开始的y点
     }
-    rotation(angle,callback,type="left",xCanvas = window.xCanvas){
-        xCanvas.context.save()
-        if(type === 'left'){
-            xCanvas.context.translate(this.x,this.y);
-        }else{
-            var new_x = this.w / 2  // 以中点
-            var new_y = this.y / 2  // 以中点
-            xCanvas.context.translate(new_x,new_y);
-        }
-        xCanvas.context.rotate(angle);
-        callback()
-        xCanvas.context.restore();
-    }
     update(){
-        this.rotation(1,()=>{
-            xCanvas.context.fillRect(this.x,this.y,this.w,this.h)
-        }) 
-
+        this.aabb_update(this)
+        this.rotation(window.rot)  
+        this.render()
+        //console.log(window.rot)
+        window.rot += 1
     }
     del(){
 
     }
-
+    click(){
+        alert('1')
+    }
 }
 class World extends NewYuanSuBase{   // 渲染标题文字
     constructor(x,y,strBuff,color='#000',font="14px Arial",textAlign="center",textBaseline="middle"){
@@ -193,7 +224,7 @@ class World extends NewYuanSuBase{   // 渲染标题文字
         for(var i in strBuff){
             var ret = strBuff[i].indexOf('px')
             if(ret != -1){
-                this.h = strBuff[i].slice(0,ret)
+                this.h = Number(strBuff[i].slice(0,ret))
             }
         }
         
@@ -210,12 +241,18 @@ class World extends NewYuanSuBase{   // 渲染标题文字
         // "alphabetic  top  hanging  middle  ideographic  bottom";
         // 渲染tile 在 x点 50 y点 10  允许的最大宽度 maxWidth  
     }
+    update(){
+        this.aabb_update(this)
+        this.rotation(window.rot)  
+        this.render()
+    }
     del(){
         
     }
 }
 
 var xCanvas = window.xCanvas = new XCanvas('One',1000,1000,"canvas")
-text = new World(100,100,"你好")
-juxing = new JuXing(300,300,50,50,color="red")
+text = new World(50,50,"你好")
+window.rot = 1
+juxing = new JuXing(100,100,50,50,color="red")
 
