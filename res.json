@@ -1,0 +1,16 @@
+{
+	"images": [{
+			"name": "one",
+			"url": "./res/img/p2tankU.gif"
+		},
+		{
+			"name": "two",
+			"url": "./res/img/p1tankR.gif"
+		}
+	],
+	"video": [{
+		"name": "music",
+		"url": "./res/img/p2tankU.gif"
+	}
+	]
+}
