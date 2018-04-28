@@ -13,8 +13,9 @@ class NewYuanSuBase{
         this.rot = 0 // 旋转需要用到的属性
         this.click = () =>{  console.log(this,"获取了点击") }
         this.updates = () =>{
-            console.log('处在更新函数中')   
+            this.render()
         }
+        
     }
     
     reg(xCanvas = window.xCanvas){
@@ -42,6 +43,10 @@ class NewYuanSuBase{
         this.R = this.x + this.w
     }
     render(){
+    }
+    update(){
+        this.aabb_update() // 更新aabb
+        this.updates() // 执行开放updates
     }
     del(){
         delete this
@@ -77,6 +82,7 @@ class JuXing extends NewYuanSuBase{ // 注意reg 注册的层级 z_index
     constructor(x,y,w,h,color='#000'){
         super(x,y,w,h)
         this.color = color // 设置颜色
+        return this
     }
     render(xCanvas = window.xCanvas){
         
@@ -84,11 +90,6 @@ class JuXing extends NewYuanSuBase{ // 注意reg 注册的层级 z_index
         xCanvas.context.fillRect(this.x,this.y,this.w,this.h)
         
         // 绘制一个填充矩形  开始的x点 和 开始的y点
-    }
-    update(){
-        this.aabb_update(this)
-        this.rotation(this.rot)
-        this.rot--  
     }
 }
 class World extends NewYuanSuBase{   // 渲染标题文字
@@ -104,6 +105,7 @@ class World extends NewYuanSuBase{   // 渲染标题文字
         this.w = xCanvas.context.measureText(this.strBuff).width + (this.strBuff.length*5)
         this.color = color // 设置颜色
         this.get_font_height()
+        return this
     }
     get_font_height(){
         var strBuff = this.font.split(" ")
@@ -126,12 +128,7 @@ class World extends NewYuanSuBase{   // 渲染标题文字
         // "alphabetic  top  hanging  middle  ideographic  bottom";
         // 渲染tile 在 x点 50 y点 10  允许的最大宽度 maxWidth  
     }
-    update(){
-        this.aabb_update(this)
-        this.rotation(this.rot)
-        this.rot--  
-    }
-    aabb_update(){
+    aabb_update(){ // text 的aabb 更新
         if(this.textBaseline === 'middle')
             this.L = this.x - this.w / 2 
         
@@ -163,6 +160,8 @@ class XCanvas{
         this.dom.onclick = this.click_distribute // 注册 onclick 事件
         this.scene_list = [] // 场景管理器列表
         this.scene = 0  // 当前场景号
+        this.warn = ''
+        
     }
     click_distribute(event,xCanvas = window.xCanvas){ // 点击事件分发
         var x = event.clientX - canvas.getBoundingClientRect().left // 获取点击的坐标点
@@ -230,7 +229,7 @@ class XCanvas{
     }
     created(){
         this.scene_list[this.scene]()
-        console.log('执行完毕')
+        console.log('场景渲染完成')
     }
     start(){
         this.created()
@@ -254,7 +253,8 @@ class XCanvas{
                         window.xCanvas.res[load.name] = new Image() // 设置xCanvas.res图片name
                         window.xCanvas.res[load.name].src = load.url // 设置xCanvas.res图片src
                         window.xCanvas.res[load.name].onload = ()=>{
-                    }
+                            // 图片载入完成后 你懂得
+                        }
                     }
                 }            
                 window.xCanvas.start()
@@ -268,15 +268,25 @@ class XCanvas{
 var xCanvas = window.xCanvas = new XCanvas('One',1000,1000,"canvas")
 xCanvas.scene_list = [
     ()=>{
-        new JuXing(100,100,100,100,"green").click = ()=>{
+        var obj = new JuXing(100,100,100,100,"green")
+        obj.click = ()=>{
             console.log("成功获取进行场景切换")
             window.xCanvas.scene_tab() 
         }
+        obj.updates = ()=>{
+            obj.rotation(obj.rot)
+            obj.rot--
+        }
     },
     ()=>{
-        new JuXing(50,50,100,100,"red").click = ()=>{
+        var obj = new JuXing(50,50,100,100,"red")
+        obj.click = ()=>{
             console.log("成功获取进行场景切换")
             window.xCanvas.scene_tab('R') 
+        }
+        obj.updates = ()=>{
+            obj.rotation(obj.rot)
+            obj.rot++
         }
 
     }
