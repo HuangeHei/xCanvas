@@ -11,12 +11,15 @@ class NewYuanSuBase{
         this.R = this.x + this.w // 右
         this.reg()
         this.rot = 0 // 旋转需要用到的属性
+        this.click = () =>{  console.log(this,"获取了点击") }
+        this.updates = () =>{
+            console.log('处在更新函数中')   
+        }
     }
     
     reg(xCanvas = window.xCanvas){
         if(xCanvas.regYuanSu(this)){
             console.log('注册成功')
-
         }
     }
     unreg(xCanvas = window.xCanvas){
@@ -39,8 +42,6 @@ class NewYuanSuBase{
         this.R = this.x + this.w
     }
     render(){
-    }
-    update(){
     }
     del(){
         delete this
@@ -67,10 +68,9 @@ class NewYuanSuBase{
         this.y = save_y
         xCanvas.context.restore();
     }
-    
-    click(callback){
-        callback()
-    }
+    //click(callback){
+      //  callback()
+    //}
 }
 
 class JuXing extends NewYuanSuBase{ // 注意reg 注册的层级 z_index
@@ -86,11 +86,10 @@ class JuXing extends NewYuanSuBase{ // 注意reg 注册的层级 z_index
         // 绘制一个填充矩形  开始的x点 和 开始的y点
     }
     update(){
-        this.aabb_update()
-        this.rotation(this.rot)  
-        this.rot++
+        this.aabb_update(this)
+        this.rotation(this.rot)
+        this.rot--  
     }
-
 }
 class World extends NewYuanSuBase{   // 渲染标题文字
     constructor(x,y,strBuff,color='#000',font="14px Arial",textAlign="center",textBaseline="middle"){
@@ -158,17 +157,18 @@ class XCanvas{
         this.renderList = [] // 注册方法
         this.fps = fps // 初始化 fps 帧率
         this.frames = 0 // 帧数
-        this.res = {}
-        this.loadingRes()
-        this.loading_ok = false
+        this.res = {} // 资源存稿
+        this.loadingRes() // 加载资源
+        this.loading_ok = false // 是否完成
         this.dom.onclick = this.click_distribute // 注册 onclick 事件
+        this.scene_list = [] // 场景管理器列表
+        this.scene = 0  // 当前场景号
     }
-    click_distribute(event,xCanvas = window.xCanvas){
+    click_distribute(event,xCanvas = window.xCanvas){ // 点击事件分发
         var x = event.clientX - canvas.getBoundingClientRect().left // 获取点击的坐标点
         var y = event.clientY - canvas.getBoundingClientRect().top  // 获取点击的坐标点
-        
         for(var i = 0 ; i < xCanvas.renderList.length ; i++){
-            console.log(xCanvas.renderList[i])
+            console.log("是",xCanvas.renderList[i],"获取到了点击")
             if(xCanvas.renderList[i].test_aabb(x,y)){ // 传入 x y 检测一哈
                 xCanvas.renderList[i].click()
             }
@@ -187,11 +187,17 @@ class XCanvas{
         this.renderList.splice(this.renderList.indexOf(YuanSu), 1); // 解除注册
         return true
     }
+    clear_renderList(){ // 清空renderList
+        for(var i = 0 ; i < this.renderList.length ; i++){
+            this.renderList[i].del() // 调用其del方法
+        }
+        this.renderList = [] //清空
+    }
     clear(x=0,y=0,width=this.width,height=this.height){
         window.xCanvas.context.clearRect(x,y,width,height) 
         // 清屏 开始x点  开始y点  清除的 宽度  高度
     }
-    render(xCanvas = window.xCanvas){// 开始渲染所有注册过的
+    render(xCanvas = window.xCanvas){// 开始渲染当前场景所有注册过的
         for(var i = 0 ;i < xCanvas.renderList.length ;i++){
             xCanvas.renderList[i].render()
         }
@@ -203,10 +209,28 @@ class XCanvas{
         }
         xCanvas.frames++ // 增加帧数
     }
+    
+    scene_tab(type="D"){
+
+        // 场景控制器 前进还是后退
+        if(type === 'D'){
+            this.scene++// 场景++
+        }else if (type === 'R'){
+            this.scene--// 场景++
+        }
+        // ---------- end -----------
+
+        if(this.scene < this.scene_list.length){
+            this.clear_renderList() // 清空场景
+           
+            this.created() // created 只会执行一次 ，所以 我们要再次调用created
+        }else{
+            console.log('没有更多的场景进行更换了')
+        }
+    }
     created(){
-        new World(50,50,"你好")
-        new JuXing(100,100,50,50,"red")
-        window.xCanvas.render() // render 渲染出所有注册的
+        this.scene_list[this.scene]()
+        console.log('执行完毕')
     }
     start(){
         this.created()
@@ -242,6 +266,21 @@ class XCanvas{
 }
 
 var xCanvas = window.xCanvas = new XCanvas('One',1000,1000,"canvas")
+xCanvas.scene_list = [
+    ()=>{
+        new JuXing(100,100,100,100,"green").click = ()=>{
+            console.log("成功获取进行场景切换")
+            window.xCanvas.scene_tab() 
+        }
+    },
+    ()=>{
+        new JuXing(50,50,100,100,"red").click = ()=>{
+            console.log("成功获取进行场景切换")
+            window.xCanvas.scene_tab('R') 
+        }
+
+    }
+]
 
 
 
